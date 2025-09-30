@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": [
+      "es2022",
+      "webworker",
+      "dom",
+      "dom.iterable"
+    ],
+    "moduleDetection": "force",
+    "baseUrl": ".",
+    "rootDir": ".",
+    "module": "esnext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@nextorders/queue": ["./packages/queue/index.ts"],
+      "@nextorders/queue/*": ["./packages/queue/*"]
+    },
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "declaration": true,
+    "declarationDir": "./types",
+    "emitDeclarationOnly": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": [
+    "*.ts",
+    "packages",
+    "vitest.config.ts"
+  ],
+  "exclude": [
+    "**/dist/**",
+    "**/examples/**",
+    "**/docs/**",
+    "**/playground/**",
+    "**/test/unit/**"
+  ]
+}

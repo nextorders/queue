@@ -1,0 +1,42 @@
+{
+  "name": "@nextorders/queue",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Designed to simplify working with RabbitMQ in Node.js applications. Provides a high-level API for organizing message queues and processing business entities.",
+  "license": "MIT",
+  "homepage": "https://nextorders.ru/queue",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nextorders/queue.git",
+    "directory": "packages/queue"
+  },
+  "keywords": [
+    "queue",
+    "rabbitmq",
+    "nextorders"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json",
+    "./README.md": "./README.md"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "unbuild",
+    "prepack": "pnpm run build"
+  },
+  "dependencies": {
+    "rabbitmq-client": "5.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:types",
+    "unbuild": "catalog:dev"
+  }
+}
