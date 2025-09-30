@@ -1,5 +1,5 @@
 import type { Consumer } from 'rabbitmq-client'
-import type { BaseEventHandler, Binding, Queue, QueueEntity, QueueRepository } from './types'
+import type { BaseEventHandler, QueueEntity, QueueRepository } from './types'
 
 type EntityOptions = {
   name: string
@@ -10,16 +10,11 @@ type EntityOptions = {
 export class Entity implements QueueEntity {
   name: string
   eventsToConsume: string[] = []
-
   repository: QueueRepository
-
-  queues: Queue[] = []
-  bindings: Binding[] = []
 
   constructor({ name, eventsToConsume, repository }: EntityOptions) {
     this.name = name
     this.eventsToConsume = eventsToConsume
-
     this.repository = repository
 
     this.initQueues(name)
@@ -27,8 +22,12 @@ export class Entity implements QueueEntity {
   }
 
   async consume(handler: BaseEventHandler<unknown>): Promise<Consumer> {
+    if (!this.queue?.queue) {
+      throw new Error(`Queue "${this.name}" not found`)
+    }
+
     const consumer = this.repository.connection.createConsumer({
-      queue: this.queue?.queue,
+      queue: this.queue.queue,
       queueOptions: {
         passive: true,
       },
@@ -48,7 +47,7 @@ export class Entity implements QueueEntity {
   }
 
   get queue() {
-    return this.queues.find((queue) => queue.queue === this.name)
+    return this.repository.queues.find((queue) => queue.queue === this.name)
   }
 
   private initQueues(name: string) {
@@ -75,6 +74,10 @@ export class Entity implements QueueEntity {
   }
 
   private initBindings(events: string[]) {
+    if (!events.length) {
+      return
+    }
+
     const eventsExchange = this.repository.exchanges.events.exchange
     const retryExchange = this.repository.exchanges.retry.exchange
     const failExchange = this.repository.exchanges.fail.exchange
