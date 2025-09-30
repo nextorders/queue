@@ -13,6 +13,8 @@
   "keywords": [
     "queue",
     "rabbitmq",
+    "publisher",
+    "consumer",
     "nextorders"
   ],
   "exports": {
