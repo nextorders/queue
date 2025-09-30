@@ -4,6 +4,8 @@
 
 The `@nextorders/queue` is a TypeScript library designed to simplify working with RabbitMQ in Node.js applications. The library provides a high-level API for organizing message queues and processing business entities.
 
+![RabbitMQ Dashboard](https://github.com/user-attachments/assets/b330e911-bc74-404d-9999-c720b04ca9f7)
+
 ## Key Features
 
 - Type-safe operations with message queues
