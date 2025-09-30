@@ -30,7 +30,8 @@
   ],
   "scripts": {
     "build": "unbuild",
-    "prepack": "pnpm run build"
+    "prepack": "pnpm run build",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "rabbitmq-client": "5.0.5"
