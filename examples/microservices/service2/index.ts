@@ -13,7 +13,7 @@ repository.consume(repository.email.name, {
 async function handleUserCreated(data: UserCreated['data']): Promise<boolean> {
   try {
     // Service logic: Send email
-    sendEmail(data.email)
+    await sendEmail(data.email)
     return true
   } catch (error) {
     console.error('Failed to send email:', error)
@@ -25,7 +25,7 @@ async function sendEmail(email: string) {
   console.warn('Sending email to', email)
 
   // Publish Event for other services
-  repository.publish(Events.EmailSent, {
+  await repository.publish(Events.EmailSent, {
     email,
   })
 }

@@ -16,8 +16,8 @@ export interface QueueRepository {
   bindings: Binding[]
   queues: Queue[]
   publish: <T extends BaseEventMessage>(event: T['event'], data: T['data']) => Promise<void>
-  consume: <T extends BaseEventMessageHandler>(queue: string, eventHandlers: Record<string, T>) => Promise<Consumer>
-  handleEvent: (eventHandlers: BaseEventHandlerMap, msg: BaseEventMessage) => Promise<Status>
+  consume: <T extends BaseEventMessage['data']>(queue: string, eventHandlers: BaseEventHandlerMap<T>) => Promise<Consumer>
+  handleEvent: <T extends BaseEventMessage['data']>(eventHandlers: BaseEventHandlerMap<T>, msg: BaseEventMessage<T>) => Promise<Status>
   connect: (connectionString: string) => Promise<void>
   checkHealth: () => boolean
   success: () => Status
