@@ -6,7 +6,7 @@ import { Events } from '../repository/types'
 
 // Consume to Events
 repository.consume(repository.email.name, {
-  userCreated: handleUserCreated,
+  [Events.UserCreated]: handleUserCreated,
 } as EventHandlerMap)
 
 // Business logic

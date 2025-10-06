@@ -14,7 +14,7 @@ export type EventMessageHandler<T = EventMessage['data']> = (data: T) => Promise
 export type EventHandlerMap = Record<EventMessage['event'], EventMessageHandler>
 
 export interface UserCreated extends BaseEventMessage {
-  event: Events.UserCreated
+  event: typeof Events.UserCreated
   data: {
     id: string
     name: string
@@ -23,7 +23,7 @@ export interface UserCreated extends BaseEventMessage {
 }
 
 export interface EmailSent extends BaseEventMessage {
-  event: Events.EmailSent
+  event: typeof Events.EmailSent
   data: {
     email: string
   }
