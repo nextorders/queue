@@ -1,11 +1,11 @@
-import type { Publisher } from 'rabbitmq-client'
-import type { Binding, ExchangesList, Queue, QueueRepository } from './types'
+import type { Consumer, Publisher } from 'rabbitmq-client'
+import type { BaseEventHandlerMap, BaseEventMessage, Binding, ExchangesList, Queue, QueueRepository, Status } from './types'
 import { Connection, ConsumerStatus } from 'rabbitmq-client'
 import { COMMON_EXCHANGES } from './exchanges'
 
 export class Repository implements QueueRepository {
-  private _connection: Connection | null = null
-  private _publisher: Publisher | null = null
+  #connection: Connection | null = null
+  #publisher: Publisher | null = null
 
   queues: Queue[] = []
   bindings: Binding[] = []
@@ -20,35 +20,84 @@ export class Repository implements QueueRepository {
   }
 
   async connect(connectionString: string) {
-    this.initConnection(connectionString)
+    this.#initConnection(connectionString)
 
-    await this.declareExchanges()
-    await this.declareQueues()
-    await this.declareBindings()
+    await this.#declareExchanges()
+    await this.#declareQueues()
+    await this.#declareBindings()
   }
 
   get publisher(): Publisher {
-    if (!this._publisher) {
-      this._publisher = this.connection.createPublisher({
+    if (!this.#publisher) {
+      this.#publisher = this.connection.createPublisher({
         maxAttempts: 2,
         confirm: true,
       })
 
-      return this._publisher
+      return this.#publisher
     }
 
-    return this._publisher
+    return this.#publisher
   }
 
   get connection(): Connection {
-    if (!this._connection) {
+    if (!this.#connection) {
       throw new Error('Connection is not created')
     }
 
-    return this._connection
+    return this.#connection
   }
 
-  private initConnection(connectionString: string): void {
+  async publish<T extends BaseEventMessage>(event: T['event'], data: T['data']) {
+    return this.publisher.send({
+      exchange: this.exchanges.events.exchange,
+      routingKey: event,
+    }, {
+      event,
+      data,
+    })
+  }
+
+  async consume<T extends BaseEventMessage['data']>(queue: string, eventHandlers: BaseEventHandlerMap<T>): Promise<Consumer> {
+    if (!queue) {
+      throw new Error(`Queue "${queue}" not found`)
+    }
+
+    const consumer = this.connection.createConsumer({
+      queue,
+      queueOptions: {
+        passive: true,
+      },
+      noAck: false,
+      qos: {
+        prefetchCount: 1,
+      },
+    }, async (msg) => this.handleEvent(eventHandlers, msg.body))
+
+    consumer.on('error', (err) => {
+      // Maybe the consumer was cancelled, or the connection was reset before a
+      // message could be acknowledged.
+      console.error('consumer error', err)
+    })
+
+    return consumer
+  }
+
+  async handleEvent<T extends BaseEventMessage['data']>(eventHandlers: BaseEventHandlerMap<T>, msg: BaseEventMessage<T>): Promise<Status> {
+    const handler = eventHandlers[msg.event]
+    if (!handler) {
+      return this.ignore()
+    }
+
+    try {
+      return await handler(msg.data) ? this.success() : this.fail()
+    } catch (error) {
+      console.error('Error handling message:', error)
+      return this.fail()
+    }
+  }
+
+  #initConnection(connectionString: string): void {
     const connection = new Connection({
       url: connectionString,
     })
@@ -57,10 +106,10 @@ export class Repository implements QueueRepository {
       console.error('RabbitMQ connection error', err)
     })
 
-    this._connection = connection
+    this.#connection = connection
   }
 
-  private async declareExchanges() {
+  async #declareExchanges() {
     for (const [name, config] of Object.entries(this.exchanges)) {
       await this.connection.exchangeDeclare({
         exchange: name,
@@ -71,7 +120,7 @@ export class Repository implements QueueRepository {
     }
   }
 
-  private async declareQueues() {
+  async #declareQueues() {
     for (const queue of this.queues) {
       await this.connection.queueDeclare({
         queue: queue.queue,
@@ -82,7 +131,7 @@ export class Repository implements QueueRepository {
     }
   }
 
-  private async declareBindings() {
+  async #declareBindings() {
     for (const binding of this.bindings) {
       await this.connection.queueBind({
         exchange: binding.exchange,

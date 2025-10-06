@@ -6,7 +6,7 @@ The `@nextorders/queue` is a TypeScript library designed to simplify working wit
 
 ![RabbitMQ Dashboard](https://github.com/user-attachments/assets/b330e911-bc74-404d-9999-c720b04ca9f7)
 
-## Key Features
+## 😨 Key Features
 
 - Type-safe operations with message queues
 - Automatic connection to the RabbitMQ server
@@ -15,7 +15,7 @@ The `@nextorders/queue` is a TypeScript library designed to simplify working wit
 - Support for various message types
 - Flexible connection configuration
 
-## Installation
+## 📦 Installation
 
 You can install the library via npm:
 
@@ -23,89 +23,157 @@ You can install the library via npm:
 npm install @nextorders/queue
 ```
 
-## Usage
+## 🚀 Usage
 
-Prepare types:
+### 1. Define Event Types
+
+Create type definitions for your events:
 
 ```typescript
 import type { BaseEventMessage } from '@nextorders/queue'
 
 export enum Events {
-  TICKET_MESSAGE_CREATED = 'ticketMessageCreated',
-  OTHER_ACTION = 'otherAction',
+  UserCreated = 'userCreated',
+  EmailSent = 'emailSent',
 }
 
-export type EventMessage = BaseEventMessage<Events>
+export type EventMessage = UserCreated | EmailSent
 
-export interface TicketMessageCreated extends EventMessage {
-  type: typeof Events.TICKET_MESSAGE_CREATED
+export interface UserCreated extends BaseEventMessage {
+  event: typeof Events.UserCreated
   data: {
-    ticketId: string
-    ticketOwnerId: string
-    messageId: string
-    userId: string
-    userName: string
-    userSurname: string | undefined
-    userText: string
+    id: string
+    name: string
+    email: string
+  }
+}
+
+export interface EmailSent extends BaseEventMessage {
+  event: typeof Events.EmailSent
+  data: {
+    email: string
   }
 }
 ```
 
-Create Entities:
+### 2. Create Entities
+
+Define entities that represent your services:
 
 ```typescript
 import { Entity, Repository } from '@nextorders/queue'
+import { Events } from './types'
 
-export class Telegram extends Entity {
+export class User extends Entity {
   constructor(repository: Repository) {
     super({
-      name: 'telegram',
-      eventsToConsume: ['ticketMessageCreated'],
+      name: 'user',
+      eventsToConsume: [],
+      repository,
+    })
+  }
+}
+
+export class Email extends Entity {
+  constructor(repository: Repository) {
+    super({
+      name: 'email',
+      eventsToConsume: [Events.UserCreated],
       repository,
     })
   }
 }
 ```
 
-Create Repository with Entities:
+### 3. Create Repository
+
+Create a repository that manages your entities:
 
 ```typescript
+import type { EventMessage } from './types'
 import { Repository } from '@nextorders/queue'
-import { Telegram, Ticket } from './entities'
+import { Email, User } from './entities'
 
 class QueueRepository extends Repository {
-  telegram: Telegram = new Telegram(this)
-  ticket: Ticket = new Ticket(this)
+  user: User = new User(this)
+  email: Email = new Email(this)
+
+  // Override publish method with proper typing
+  publish<T extends EventMessage>(
+    event: T['event'],
+    data: T['data']
+  ): Promise<void> {
+    return super.publish(event, data)
+  }
 }
 
 export const repository = new QueueRepository()
 ```
 
-On server start (for example in Nuxt server plugin):
+### 4. Connect to RabbitMQ
+
+On service start, connect to your RabbitMQ instance:
 
 ```typescript
-await repository.connect(process.env.QUEUE_URL)
+import { repository } from './repository'
+
+await repository.connect('amqp://guest:guest@localhost:5672')
 ```
 
-And thats it! Use repository in app:
+### 5. Publish Events
+
+Create and publish events from your services:
 
 ```typescript
-// Publisher
-await repository.publisher.send({
-  exchange: repository.exchanges.events.exchange,
-  routingKey: Events.TICKET_MESSAGE_CREATED,
-}, body)
-
-// Consumer
-await repository.telegram.consume(async (msg) => {
-  if (msg.type === 'ticketMessageCreated') {
-    return handleTicketMessageCreated(msg) // ack on finish
-  }
-
-  return queue.ignore()
+await repository.publish(Events.UserCreated, {
+  id: newUser.id,
+  name: newUser.name,
+  email: newUser.email,
 })
 ```
 
-## License
+### 6. Consume Events
+
+Subscribe to events and handle them:
+
+```typescript
+import type { UserCreated } from './types'
+import { repository } from './repository'
+import { Events } from './types'
+
+// Define event handlers
+async function handleUserCreated(data: UserCreated['data']): Promise<boolean> {
+  try {
+    await sendEmail(data.email)
+    return true
+  } catch (error) {
+    console.error('Error handling UserCreated event:', error)
+    return false
+  }
+}
+
+async function sendEmail(email: string): Promise<void> {
+  console.warn('Sending email to:', email)
+
+  // Publish EmailSent event
+  await repository.publish(Events.EmailSent, { email })
+}
+
+// Subscribe to events
+await repository.consume(repository.email.name, {
+  [Events.UserCreated]: handleUserCreated,
+})
+```
+
+## 💁‍♂️ Example: Microservices Architecture
+
+Check out the examples/microservices directory for a complete working example with:
+
+- Service 1: User creation service
+- Service 2: Email notification service
+- Shared repository with entities
+- Type-safe event definitions
+
+## 🤝 License
 
 This project is licensed under the MIT License.
