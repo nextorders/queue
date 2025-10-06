@@ -1,5 +1,4 @@
-import type { Consumer } from 'rabbitmq-client'
-import type { BaseEventHandler, QueueEntity, QueueRepository } from './types'
+import type { QueueEntity, QueueRepository } from './types'
 
 type EntityOptions = {
   name: string
@@ -9,7 +8,7 @@ type EntityOptions = {
 
 export class Entity implements QueueEntity {
   name: string
-  eventsToConsume: string[] = []
+  eventsToConsume: string[]
   repository: QueueRepository
 
   constructor({ name, eventsToConsume, repository }: EntityOptions) {
@@ -17,40 +16,11 @@ export class Entity implements QueueEntity {
     this.eventsToConsume = eventsToConsume
     this.repository = repository
 
-    this.initQueues(name)
-    this.initBindings(eventsToConsume)
+    this.#initQueues(name)
+    this.#initBindings(eventsToConsume)
   }
 
-  async consume(handler: BaseEventHandler<unknown>): Promise<Consumer> {
-    if (!this.queue?.queue) {
-      throw new Error(`Queue "${this.name}" not found`)
-    }
-
-    const consumer = this.repository.connection.createConsumer({
-      queue: this.queue.queue,
-      queueOptions: {
-        passive: true,
-      },
-      noAck: false,
-      qos: {
-        prefetchCount: 1,
-      },
-    }, async (msg) => handler(msg.body))
-
-    consumer.on('error', (err) => {
-      // Maybe the consumer was cancelled, or the connection was reset before a
-      // message could be acknowledged.
-      console.error('consumer error (telegram)', err)
-    })
-
-    return consumer
-  }
-
-  get queue() {
-    return this.repository.queues.find((queue) => queue.queue === this.name)
-  }
-
-  private initQueues(name: string) {
+  #initQueues(name: string) {
     this.repository.queues.push({
       queue: name,
       arguments: {
@@ -73,7 +43,7 @@ export class Entity implements QueueEntity {
     })
   }
 
-  private initBindings(events: string[]) {
+  #initBindings(events: string[]) {
     if (!events.length) {
       return
     }

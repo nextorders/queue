@@ -1,4 +1,13 @@
-import type { Cmd, Connection, Consumer, ConsumerStatus, MethodParams, Publisher } from 'rabbitmq-client'
+import type { Cmd, Connection, Consumer, MethodParams, Publisher } from 'rabbitmq-client'
+import { ConsumerStatus } from 'rabbitmq-client'
+
+const _statuses = {
+  ACK: ConsumerStatus.ACK,
+  DROP: ConsumerStatus.DROP,
+  REQUEUE: ConsumerStatus.REQUEUE,
+} as const
+
+export type Status = typeof _statuses[keyof typeof _statuses]
 
 export interface QueueRepository {
   connection: Connection
@@ -6,32 +15,42 @@ export interface QueueRepository {
   exchanges: ExchangesList
   bindings: Binding[]
   queues: Queue[]
+  publish: <T extends BaseEventMessage>(event: T['event'], data: T['data']) => Promise<void>
+  consume: <T extends BaseEventMessageHandler>(queue: string, eventHandlers: Record<string, T>) => Promise<Consumer>
+  handleEvent: (eventHandlers: BaseEventHandlerMap, msg: BaseEventMessage) => Promise<Status>
   connect: (connectionString: string) => Promise<void>
   checkHealth: () => boolean
-  success: () => ConsumerStatus
-  fail: () => ConsumerStatus
-  ignore: () => ConsumerStatus
+  success: () => Status
+  fail: () => Status
+  ignore: () => Status
 }
 
 export interface QueueEntity {
   name: string
   eventsToConsume: string[]
   repository: QueueRepository
-  consume: (handler: BaseEventHandler<unknown>) => Promise<Consumer>
 }
 
 /**
- * @example type EventMessage = BaseEventMessage<Events>
+ * @example export interface UserCreated extends BaseEventMessage {
+ * event: 'userCreated'
+ *   data: {
+ *     id: string
+ *     name: string
+ *     email: string
+ *   }
+ * }
  */
-export interface BaseEventMessage<T> {
-  type: T
-  data: any
+export interface BaseEventMessage<T = Record<string, unknown>> {
+  event: string
+  data: T
 }
 
-/**
- * @example type EventMessageHandler = (message: BaseEventMessage<Events>) => Promise<ConsumerStatus>
- */
-export type BaseEventHandler<T> = (message: BaseEventMessage<T>) => Promise<ConsumerStatus>
+export type BaseEventHandler<T = Record<string, unknown>> = (message: BaseEventMessage<T>) => Promise<ConsumerStatus>
+
+export type BaseEventMessageHandler<T = Record<string, unknown>> = (data: T) => Promise<boolean>
+
+export type BaseEventHandlerMap<T = Record<string, unknown>> = Record<string, BaseEventMessageHandler<T>>
 
 export type Queue = MethodParams[Cmd.QueueDeclare]
 export type QueuesList = Record<string, Queue>
