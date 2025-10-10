@@ -1,18 +1,17 @@
-import type { EventHandlerMap, UserCreated } from '../repository/types'
+import type { EmailSent, EventHandlerMap, UserCreated } from '../repository/types'
 import { repository } from '../repository'
 import { Events } from '../repository/types'
 
 // Service 2: Email Service
 
-// Consume to Events
-repository.consume(repository.email.name, {
-  [Events.UserCreated]: handleUserCreated,
-} as EventHandlerMap)
+// Subscribe to Events and handle them
+repository.consume<EventHandlerMap>(repository.email.name, {
+  userCreated: handleUserCreated,
+})
 
 // Business logic
 async function handleUserCreated(data: UserCreated['data']): Promise<boolean> {
   try {
-    // Service logic: Send email
     await sendEmail(data.email)
     return true
   } catch (error) {
@@ -25,7 +24,7 @@ async function sendEmail(email: string) {
   console.warn('Sending email to', email)
 
   // Publish Event for other services
-  await repository.publish(Events.EmailSent, {
+  await repository.publish<EmailSent>(Events.EmailSent, {
     email,
   })
 }

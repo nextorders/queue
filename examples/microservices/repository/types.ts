@@ -1,4 +1,4 @@
-import type { BaseEventMessage, Status } from '@nextorders/queue'
+import type { BaseEventMap, BaseEventMessage, BaseEventMessageHandlerMap } from '@nextorders/queue'
 
 // All possible events
 export enum Events {
@@ -6,25 +6,23 @@ export enum Events {
   EmailSent = 'emailSent',
 }
 
-export type EventMessage = UserCreated | EmailSent
+type EventMessage = UserCreated | EmailSent
+type EventMap = BaseEventMap<EventMessage>
 
-export type EventHandler = (msg: EventMessage) => Promise<Status>
-export type EventMessageHandler<T = EventMessage['data']> = (data: T) => Promise<boolean>
+export type EventHandlerMap = Partial<BaseEventMessageHandlerMap<EventMap>>
 
-export type EventHandlerMap = Record<EventMessage['event'], EventMessageHandler>
-
-export interface UserCreated extends BaseEventMessage {
+type UserCreatedData = {
+  id: string
+  name: string
+  email: string
+}
+export interface UserCreated extends BaseEventMessage<UserCreatedData> {
   event: typeof Events.UserCreated
-  data: {
-    id: string
-    name: string
-    email: string
-  }
 }
 
-export interface EmailSent extends BaseEventMessage {
+type EmailSentData = {
+  email: string
+}
+export interface EmailSent extends BaseEventMessage<EmailSentData> {
   event: typeof Events.EmailSent
-  data: {
-    email: string
-  }
 }

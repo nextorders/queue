@@ -1,5 +1,5 @@
 import type { Consumer, Publisher } from 'rabbitmq-client'
-import type { BaseEventHandlerMap, BaseEventMessage, Binding, ExchangesList, Queue, QueueRepository, Status } from './types'
+import type { BaseEventMap, BaseEventMessage, BaseEventMessageHandlerMap, Binding, ExchangesList, Queue, QueueRepository, Status } from './types'
 import { Connection, ConsumerStatus } from 'rabbitmq-client'
 import { COMMON_EXCHANGES } from './exchanges'
 
@@ -48,7 +48,7 @@ export class Repository implements QueueRepository {
     return this.#connection
   }
 
-  async publish<T extends BaseEventMessage>(event: T['event'], data: T['data']) {
+  async publish<T extends BaseEventMessage<any>>(event: T['event'], data: T['data']) {
     return this.publisher.send({
       exchange: this.exchanges.events.exchange,
       routingKey: event,
@@ -58,7 +58,7 @@ export class Repository implements QueueRepository {
     })
   }
 
-  async consume<T extends BaseEventMessage['data']>(queue: string, eventHandlers: BaseEventHandlerMap<T>): Promise<Consumer> {
+  async consume<T extends BaseEventMessageHandlerMap<BaseEventMap<any>>>(queue: string, eventHandlers: T): Promise<Consumer> {
     if (!queue) {
       throw new Error(`Queue "${queue}" not found`)
     }
@@ -72,7 +72,7 @@ export class Repository implements QueueRepository {
       qos: {
         prefetchCount: 1,
       },
-    }, async (msg) => this.handleEvent(eventHandlers, msg.body))
+    }, async (msg) => this.#handleEvent(eventHandlers, msg.body))
 
     consumer.on('error', (err) => {
       // Maybe the consumer was cancelled, or the connection was reset before a
@@ -83,7 +83,7 @@ export class Repository implements QueueRepository {
     return consumer
   }
 
-  async handleEvent<T extends BaseEventMessage['data']>(eventHandlers: BaseEventHandlerMap<T>, msg: BaseEventMessage<T>): Promise<Status> {
+  async #handleEvent(eventHandlers: BaseEventMessageHandlerMap<BaseEventMap<any>>, msg: BaseEventMessage<any>): Promise<Status> {
     const handler = eventHandlers[msg.event]
     if (!handler) {
       return this.ignore()

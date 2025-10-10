@@ -1,3 +1,4 @@
+import type { UserCreated } from '../repository/types'
 import { repository } from '../repository'
 import { Events } from '../repository/types'
 
@@ -14,7 +15,7 @@ const newUser = {
 }
 
 // Publish Event for other services
-repository.publish(Events.UserCreated, {
+repository.publish<UserCreated>(Events.UserCreated, {
   id: newUser.id,
   name: newUser.name,
   email: newUser.email,

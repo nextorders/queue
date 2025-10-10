@@ -30,29 +30,32 @@ npm install @nextorders/queue
 Create type definitions for your events:
 
 ```typescript
-import type { BaseEventMessage } from '@nextorders/queue'
+import type { BaseEventMap, BaseEventMessage, BaseEventMessageHandlerMap } from '@nextorders/queue'
 
 export enum Events {
   UserCreated = 'userCreated',
   EmailSent = 'emailSent',
 }
 
-export type EventMessage = UserCreated | EmailSent
+type EventMessage = UserCreated | EmailSent
+type EventMap = BaseEventMap<EventMessage>
 
-export interface UserCreated extends BaseEventMessage {
+export type EventHandlerMap = Partial<BaseEventMessageHandlerMap<EventMap>>
+
+type UserCreatedData = {
+  id: string
+  name: string
+  email: string
+}
+export interface UserCreated extends BaseEventMessage<UserCreatedData> {
   event: typeof Events.UserCreated
-  data: {
-    id: string
-    name: string
-    email: string
-  }
 }
 
-export interface EmailSent extends BaseEventMessage {
+type EmailSentData = {
+  email: string
+}
+export interface EmailSent extends BaseEventMessage<EmailSentData> {
   event: typeof Events.EmailSent
-  data: {
-    email: string
-  }
 }
 ```
 
@@ -97,14 +100,6 @@ import { Email, User } from './entities'
 class QueueRepository extends Repository {
   user: User = new User(this)
   email: Email = new Email(this)
-
-  // Override publish method with proper typing
-  publish<T extends EventMessage>(
-    event: T['event'],
-    data: T['data']
-  ): Promise<void> {
-    return super.publish(event, data)
-  }
 }
 
 export const repository = new QueueRepository()
@@ -125,7 +120,7 @@ await repository.connect('amqp://guest:guest@localhost:5672')
 Create and publish events from your services:
 
 ```typescript
-await repository.publish(Events.UserCreated, {
+await repository.publish<UserCreated>(Events.UserCreated, {
   id: newUser.id,
   name: newUser.name,
   email: newUser.email,
@@ -137,9 +132,14 @@ await repository.publish(Events.UserCreated, {
 Subscribe to events and handle them:
 
 ```typescript
-import type { UserCreated } from './types'
-import { repository } from './repository'
-import { Events } from './types'
+import type { EmailSent, EventHandlerMap, UserCreated } from '../repository/types'
+import { repository } from '../repository'
+import { Events } from '../repository/types'
+
+// Subscribe to Events and handle them
+repository.consume<EventHandlerMap>(repository.email.name, {
+  userCreated: handleUserCreated,
+})
 
 // Define event handlers
 async function handleUserCreated(data: UserCreated['data']): Promise<boolean> {
@@ -155,14 +155,11 @@ async function handleUserCreated(data: UserCreated['data']): Promise<boolean> {
 async function sendEmail(email: string): Promise<void> {
   console.warn('Sending email to:', email)
 
-  // Publish EmailSent event
-  await repository.publish(Events.EmailSent, { email })
+  // Publish Event for other services
+  await repository.publish<EmailSent>(Events.EmailSent, {
+    email,
+  })
 }
-
-// Subscribe to events
-await repository.consume(repository.email.name, {
-  [Events.UserCreated]: handleUserCreated,
-})
 ```
 
 ## 💁‍♂️ Example: Microservices Architecture

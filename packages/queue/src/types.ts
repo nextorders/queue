@@ -15,9 +15,8 @@ export interface QueueRepository {
   exchanges: ExchangesList
   bindings: Binding[]
   queues: Queue[]
-  publish: <T extends BaseEventMessage>(event: T['event'], data: T['data']) => Promise<void>
-  consume: <T extends BaseEventMessage['data']>(queue: string, eventHandlers: BaseEventHandlerMap<T>) => Promise<Consumer>
-  handleEvent: <T extends BaseEventMessage['data']>(eventHandlers: BaseEventHandlerMap<T>, msg: BaseEventMessage<T>) => Promise<Status>
+  publish: <T extends BaseEventMessage<any>>(event: T['event'], data: T['data']) => Promise<void>
+  consume: <T extends BaseEventMessageHandlerMap<BaseEventMap<any>>>(queue: string, eventHandlers: T) => Promise<Consumer>
   connect: (connectionString: string) => Promise<void>
   checkHealth: () => boolean
   success: () => Status
@@ -32,25 +31,30 @@ export interface QueueEntity {
 }
 
 /**
- * @example export interface UserCreated extends BaseEventMessage {
- * event: 'userCreated'
- *   data: {
+ * @example export interface UserCreated extends BaseEventMessage<{
  *     id: string
  *     name: string
  *     email: string
- *   }
+ *   }> {
+ *   event: 'userCreated'
  * }
  */
-export interface BaseEventMessage<T = Record<string, unknown>> {
+export interface BaseEventMessage<T> {
   event: string
   data: T
 }
 
-export type BaseEventHandler<T = Record<string, unknown>> = (message: BaseEventMessage<T>) => Promise<ConsumerStatus>
+export type BaseEventMessageHandler<T> = (data: T) => Promise<boolean>
 
-export type BaseEventMessageHandler<T = Record<string, unknown>> = (data: T) => Promise<boolean>
+export type BaseEventMap<T extends Record<string, any>> = {
+  [K in T as K['event']]: K
+}
 
-export type BaseEventHandlerMap<T = Record<string, unknown>> = Record<string, BaseEventMessageHandler<T>>
+export type BaseEventMessageHandlerMap<T extends BaseEventMap<any>> = {
+  [K in keyof T]: BaseEventMessageHandler<T[K]['data']>
+}
+
+export type DistributePick<T, K extends keyof any> = T extends any ? Pick<T, Extract<keyof T, K>> : never
 
 export type Queue = MethodParams[Cmd.QueueDeclare]
 export type QueuesList = Record<string, Queue>
