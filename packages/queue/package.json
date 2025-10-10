@@ -1,7 +1,7 @@
 {
   "name": "@nextorders/queue",
   "type": "module",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Designed to simplify working with RabbitMQ in Node.js applications. Provides a high-level API for organizing message queues and processing business entities.",
   "license": "MIT",
   "homepage": "https://nextorders.ru/queue",
