@@ -20,8 +20,7 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.mjs"
+      "import": "./dist/index.mjs"
     },
     "./package.json": "./package.json",
     "./README.md": "./README.md"
@@ -33,7 +32,9 @@
   "scripts": {
     "build": "unbuild",
     "prepack": "pnpm run build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "clean:modules": "rm -rf dist node_modules"
   },
   "dependencies": {
     "rabbitmq-client": "5.0.5"
