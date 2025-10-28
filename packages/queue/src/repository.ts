@@ -19,16 +19,34 @@ export class Repository implements QueueRepository {
     return this.connection.ready
   }
 
-  async connect(connectionString: string): Promise<void> {
-    try {
-      await this.#initConnection(connectionString)
+  /**
+   * Create a connection to RabbitMQ
+   * @param connectionString
+   * @param retryCount
+   * @returns Promise<void>
+   */
+  async connect(connectionString: string, retryCount = 5): Promise<void> {
+    for (let attempt = 1; attempt <= retryCount; attempt++) {
+      try {
+        await this.#initConnection(connectionString)
+        break
+      } catch (err) {
+        console.error('RabbitMQ: Failed to connect. Retrying...', err)
+        if (attempt === retryCount) {
+          throw new Error('RabbitMQ: Failed to connect after some retries')
+        }
+        // basic exponential backoff capped at 10s
+        const delay = Math.min(1000 * 2 ** (attempt - 1), 10_000)
+        await new Promise((res) => setTimeout(res, delay))
+      }
+    }
 
+    try {
       await this.#declareExchanges()
       await this.#declareQueues()
       await this.#declareBindings()
     } catch (error) {
-      console.error('RabbitMQ error on init connection', error)
-      throw error
+      console.error('RabbitMQ: Failed to declare exchanges, queues, and bindings', error)
     }
   }
 
@@ -117,7 +135,7 @@ export class Repository implements QueueRepository {
     })
 
     // Wait for connection to be ready
-    await connection.onConnect(120_000)
+    await connection.onConnect(80_000)
 
     this.#connection = connection
   }
