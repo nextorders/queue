@@ -22,32 +22,30 @@ export class Repository implements QueueRepository {
   /**
    * Create a connection to RabbitMQ
    * @param connectionString
-   * @param retryCount
+   * @param retryCount - Number of retry attempts. Set to Infinity for infinite retries (default: Infinity)
    * @returns Promise<void>
    */
-  async connect(connectionString: string, retryCount = 5): Promise<void> {
-    for (let attempt = 1; attempt <= retryCount; attempt++) {
+  async connect(connectionString: string, retryCount = Infinity): Promise<void> {
+    let attempt = 1
+    while (attempt <= retryCount) {
       try {
         await this.#initConnection(connectionString)
         break
       } catch (err) {
-        console.error('RabbitMQ: Failed to connect. Retrying...', err)
+        console.error(`RabbitMQ: Failed to connect (attempt ${attempt}/${retryCount === Infinity ? '∞' : retryCount}). Retrying...`, err)
         if (attempt === retryCount) {
-          throw new Error('RabbitMQ: Failed to connect after some retries')
+          throw new Error('RabbitMQ: Failed to connect after maximum retries')
         }
-        // basic exponential backoff capped at 10s
+        // exponential backoff capped at 10s
         const delay = Math.min(1000 * 2 ** (attempt - 1), 10_000)
         await new Promise((res) => setTimeout(res, delay))
+        attempt++
       }
     }
 
-    try {
-      await this.#declareExchanges()
-      await this.#declareQueues()
-      await this.#declareBindings()
-    } catch (error) {
-      console.error('RabbitMQ: Failed to declare exchanges, queues, and bindings', error)
-    }
+    await this.#declareExchanges()
+    await this.#declareQueues()
+    await this.#declareBindings()
   }
 
   get publisher(): Publisher {
@@ -121,6 +119,17 @@ export class Repository implements QueueRepository {
   }
 
   async #initConnection(connectionString: string): Promise<void> {
+    // Clean up previous connection if exists
+    if (this.#connection) {
+      try {
+        await this.#connection.close()
+      } catch {
+        // Ignore cleanup errors
+      }
+      this.#connection = null
+      this.#publisher = null
+    }
+
     const connection = new Connection({
       url: connectionString,
     })
