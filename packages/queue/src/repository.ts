@@ -19,16 +19,23 @@ export class Repository implements QueueRepository {
     return this.connection.ready
   }
 
-  async connect(connectionString: string): Promise<void> {
+  /**
+   * Create a connection to RabbitMQ
+   * @param connectionString
+   * @returns true if connection was successful
+   */
+  async connect(connectionString: string): Promise<boolean> {
     try {
       await this.#initConnection(connectionString)
 
       await this.#declareExchanges()
       await this.#declareQueues()
       await this.#declareBindings()
+
+      return true
     } catch (error) {
       console.error('RabbitMQ error on init connection', error)
-      throw error
+      return false
     }
   }
 
@@ -117,7 +124,7 @@ export class Repository implements QueueRepository {
     })
 
     // Wait for connection to be ready
-    await connection.onConnect(120_000)
+    await connection.onConnect(80_000)
 
     this.#connection = connection
   }
