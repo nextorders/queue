@@ -27,3 +27,4 @@ coverage
 .vitepress/cache
 
 packages/**/__screenshots__
+WARP.md
