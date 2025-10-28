@@ -28,6 +28,7 @@ export class Repository implements QueueRepository {
       await this.#declareBindings()
     } catch (error) {
       console.error('RabbitMQ error on init connection', error)
+      throw error
     }
   }
 
@@ -115,10 +116,8 @@ export class Repository implements QueueRepository {
       console.error('RabbitMQ connection error', err)
     })
 
-    // Check if connection.ready is true
-    while (!connection.ready) {
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
+    // Wait for connection to be ready
+    await connection.onConnect(120_000)
 
     this.#connection = connection
   }
