@@ -2,4 +2,12 @@
 import { repository } from '../repository'
 
 // Connect to RabbitMQ
-repository.connect('amqp://guest:guest@localhost:5672')
+async function init() {
+  try {
+    await repository.connect('amqp://guest:guest@localhost:5672')
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+init()
