@@ -25,24 +25,19 @@ export class Repository implements QueueRepository {
    * @param retryCount
    * @returns Promise<void>
    */
-  async connect(connectionString: string, retryCount?: number): Promise<void> {
-    if (retryCount === undefined) {
-      retryCount = 5
-    }
-    let retry = 0
-
-    while (retry < retryCount) {
+  async connect(connectionString: string, retryCount = 5): Promise<void> {
+    for (let attempt = 1; attempt <= retryCount; attempt++) {
       try {
         await this.#initConnection(connectionString)
-        return
-      } catch {
-        console.error('RabbitMQ: Failed to connect. Retrying...')
-        retry++
-
-        // If retry count is exceeded, throw an error
-        if (retry >= retryCount) {
+        break
+      } catch (err) {
+        console.error('RabbitMQ: Failed to connect. Retrying...', err)
+        if (attempt === retryCount) {
           throw new Error('RabbitMQ: Failed to connect after some retries')
         }
+        // basic exponential backoff capped at 10s
+        const delay = Math.min(1000 * 2 ** (attempt - 1), 10_000)
+        await new Promise((res) => setTimeout(res, delay))
       }
     }
 
