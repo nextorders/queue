@@ -14,10 +14,10 @@ catalogs:
     typescript: ^5.9.3
     unbuild: ^3.6.1
   test:
-    '@vitest/browser-playwright': ^4.0.4
-    '@vitest/coverage-v8': ^4.0.4
+    '@vitest/browser-playwright': ^4.0.5
+    '@vitest/coverage-v8': ^4.0.5
     playwright: ^1.56.1
-    vitest: ^4.0.4
+    vitest: ^4.0.5
   types:
     '@types/node': ^24.9.2
 
