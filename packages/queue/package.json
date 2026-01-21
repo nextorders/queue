@@ -37,7 +37,7 @@
     "clean:modules": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "rabbitmq-client": "5.0.7"
+    "rabbitmq-client": "catalog:integrations"
   },
   "devDependencies": {
     "@types/node": "catalog:types",
