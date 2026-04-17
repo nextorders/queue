@@ -19,7 +19,7 @@ catalogs:
     eslint: ^9.39.3
     husky: ^9.1.7
     lint-staged: ^16.2.7
-    typescript: ^5.9.3
+    typescript: ^6.0.3
     unbuild: ^3.6.1
   integrations:
     rabbitmq-client: ^5.0.8
