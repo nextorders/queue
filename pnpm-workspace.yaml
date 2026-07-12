@@ -15,7 +15,7 @@ catalogs:
     '@antfu/eslint-config': ^7.4.3
     '@commitlint/cli': ^20.4.2
     '@commitlint/config-conventional': ^20.4.2
-    bumpp: ^10.4.1
+    bumpp: ^11.1.0
     eslint: ^9.39.3
     husky: ^9.1.7
     lint-staged: ^16.2.7
